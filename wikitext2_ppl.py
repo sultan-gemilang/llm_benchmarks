@@ -1,29 +1,36 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, LlamaTokenizer, GPT2Tokenizer, GPT2TokenizerFast
 from datasets import load_dataset
 from tqdm import tqdm
 
 import torch
 
 device = 'cuda'
-model_id = "openai-community/gpt2"
+model_id = 'baffo32/decapoda-research-llama-7B-hf'
 
-model = AutoModelForCausalLM.from_pretrained(model_id)
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-
-test = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
-test_enc = tokenizer("\n\n".join(test['text']), return_tensors="pt")
+model = AutoModelForCausalLM.from_pretrained(
+    model_id,
+    device_map='auto',
+    offload_folder='offload',
+    torch_dtype='auto'
+)
 
 if "opt" in model_id.lower():
+    tokenizer = GPT2Tokenizer.from_pretrained(model_id)
     max_length = model.config.max_position_embeddings    
 elif "gpt" in model_id.lower():
+    tokenizer = GPT2TokenizerFast.from_pretrained(model_id)
     max_length = model.config.n_positions
 elif "llama" in model_id.lower():
+    tokenizer = LlamaTokenizer.from_pretrained(model_id)
     max_length = model.config.max_length
 else:
     raise Exception("Model not supported!")
 
+test = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
+test_enc = tokenizer("\n\n".join(test['text']), return_tensors="pt")
+
 seq_len = test_enc.input_ids.size(1)
-model.to(device)
+# model.to(device)
 
 nlls = []
 prev_end_loc = 0
