@@ -5,13 +5,13 @@ from tqdm import tqdm
 import torch
 
 device = 'cuda'
-model_id = 'baffo32/decapoda-research-llama-7B-hf'
+model_id = 'meta-llama/Llama-2-7b-hf'
 
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
-    device_map='auto',
-    offload_folder='offload',
-    torch_dtype='auto'
+    # device_map='auto',
+    # offload_folder='offload',
+    torch_dtype=torch.float16
 )
 
 if "opt" in model_id.lower():
@@ -30,7 +30,7 @@ test = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
 test_enc = tokenizer("\n\n".join(test['text']), return_tensors="pt")
 
 seq_len = test_enc.input_ids.size(1)
-# model.to(device)
+model.to(device)
 
 nlls = []
 prev_end_loc = 0
@@ -59,4 +59,4 @@ for begin_loc in tqdm(range(0, seq_len, stride)):
 
 ppl = torch.exp(torch.stack(nlls).mean())
 
-print(f"{model_id} ppl\t-> {round(ppl.item(), 3)}")
+print(f"{model_id} ppl\t-> {ppl}")
